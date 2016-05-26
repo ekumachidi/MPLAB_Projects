@@ -1,0 +1,2 @@
+Warning[205] C:\MPLAB PROJECT\PIC16F84A\7 SEG\7.ASM 63 : Found directive in column 1. (cblock)
+Message[302] C:\MPLAB PROJECT\PIC16F84A\7 SEG\7.ASM 150 : Register in operand not in bank 0.  Ensure that bank bits are correct.

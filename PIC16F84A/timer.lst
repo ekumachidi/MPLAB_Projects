@@ -1,0 +1,304 @@
+MPASM  5.14                         TIMER.ASM   10-18-2012  10:42:11         PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+Warning[205]: Found directive in column 1. (list)
+                      00001 list      p=16F84A            ; list directive to define processor
+                      00002         #include <p16F84A.inc>        ; processor specific variable definitions
+                      00001         LIST
+                      00002 ; P16F84A.INC  Standard Header File, Version 2.00    Microchip Technology, Inc.
+                      00134         LIST
+                      00003 
+2007   3FF1           00004         __CONFIG   _CP_OFF & _WDT_OFF & _PWRTE_ON & _XT_OSC
+                      00005 
+                      00006 ; '__CONFIG' directive is used to embed configuration data within .asm file.
+                      00007 ; The lables following the directive are located in the respective .inc file.
+                      00008 ; See respective data sheet for additional information on configuration word.
+                      00009 
+                      00010 
+                      00011 
+                      00012 
+                      00013 ;***** VARIABLE DEFINITIONS
+  0000000C            00014 w_temp        EQU     0x0C        ; variable used for context saving 
+  0000000D            00015 status_temp   EQU     0x0D        ; variable used for context saving
+                      00016 
+Warning[205]: Found directive in column 1. (CBLOCK)
+                      00017 CBLOCK 0x0E
+  0000000E            00018 DEL
+  0000000F            00019 DEL1
+  00000010            00020 DEL2
+  00000011            00021 DEL3
+  00000012            00022 DEL4
+  00000013            00023 CNT
+  00000014            00024 CNT1
+  00000015            00025 CNT2
+  00000016            00026 CNT3
+  00000017            00027 NUM_TEMP
+  00000018            00028 TENS
+  00000019            00029 UNITS
+Warning[205]: Found directive in column 1. (ENDC)
+                      00030 ENDC
+                      00031 
+                      00032 ;**********************************************************************
+0000                  00033                 ORG     0x000             ; processor reset vector
+0000   2822           00034                 goto    main              ; go to beginning of program
+                      00035 
+                      00036 
+0004                  00037                 ORG     0x004             ; interrupt vector location
+0004   008C           00038                 movwf   w_temp            ; save off current W register contents
+0005   0803           00039                 movf    STATUS,w          ; move status register into W register
+0006   008D           00040                 movwf   status_temp       ; save off contents of STATUS register
+                      00041                 
+                      00042                 
+                      00043 ; isr code can go here or be located as a call subroutine elsewhere
+                      00044 ; No need to disable GIE and TIE because the interrupt occurs in 2ms.
+                      00045 ; there is more than enough time to service the ISR before another interrupt    
+                      00046 
+0007   3006           00047                 MOVLW .6                          ;reload timer0 6 to get a 2ms delay 
+MPASM  5.14                         TIMER.ASM   10-18-2012  10:42:11         PAGE  2
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0008   0081           00048                 MOVWF TMR0
+Message[305]: Using default destination of 1 (file).
+0009   0A94           00049                 INCF CNT1
+000A   0814           00050                 MOVF CNT1,W
+000B   3CFA           00051                 SUBLW .250
+000C   1D03           00052                 BTFSS STATUS,Z
+000D   281C           00053                 GOTO ISR1
+000E   3001           00054                 MOVLW .1        ;Reset CNT1 to initial value 1
+000F   0094           00055                 MOVWF CNT1
+Message[305]: Using default destination of 1 (file).
+0010   0A95           00056                 INCF CNT2       ; when CNT1 is equal to 255 increase CNT2
+0011   1C95           00057                 BTFSS CNT2,1    ; check to see if CNT2 has the value of 2 (when it is 2 then 500cnts hav
+                            e elapsed)
+0012   281C           00058                 GOTO ISR1
+0013   0195           00059                 CLRF CNT2       ;clear CNT2 to zero
+Message[305]: Using default destination of 1 (file).
+0014   0A96           00060                 INCF CNT3
+0015   0816           00061                 MOVF CNT3,W     ;
+0016   3C0A           00062                 SUBLW .10       ;
+0017   1903           00063                 BTFSC STATUS,Z  ;check if value has reached 10. note bit z will be 1 if this is true
+0018   0196           00064                 CLRF CNT3       ;when cnt3 is cleared then TENS register will increase
+0019   1903           00065                 BTFSC STATUS,Z  ;check the z bit again. it will be 1 if CNT3 was cleared otherwise skip
+Message[305]: Using default destination of 1 (file).
+001A   0A98           00066                 INCF TENS                                       ;not correct check later
+001B   0198           00067                 CLRF TENS
+                      00068                 
+001C   110B           00069 ISR1    BCF INTCON,T0IF  ;clear timer0 interrupt flag   
+                      00070         
+                      00071                 
+001D   080D           00072                 movf    status_temp,w     ; retrieve copy of STATUS register
+001E   0083           00073                 movwf   STATUS            ; restore pre-isr STATUS register contents
+001F   0E8C           00074                 swapf   w_temp,f
+0020   0E0C           00075                 swapf   w_temp,w          ; restore pre-isr W register contents
+0021   0009           00076                 retfie                    ; return from interrupt
+                      00077 
+                      00078                         
+                      00079 ;***********************************************************************************************
+                      00080 ;Initialize Microcontoller
+                      00081 ;Configure PORTA and PORTB as outputs
+                      00082 ;Use Timer0 interrupt. configure with prescaler of 1:8, load timer with 6 to give 2ms interrrupt
+                      00083 ;Enable Global interrupt
+                      00084 ;***********************************************************************************************
+                      00085 
+0022                  00086 main
+0022   0195           00087                         CLRF CNT2
+0023   0196           00088                         CLRF CNT3
+0024   3001           00089                         MOVLW 0x01 ;initialize cnt1 to one this variable is used for timing logic in int
+                            errupt
+0025   0094           00090                         MOVWF CNT1
+0026   1283           00091                         BCF STATUS,RP0
+0027   3006           00092                         MOVLW .6                ;initialize timer0 with 6 to get a 2ms delay 
+0028   0081           00093                         MOVWF TMR0              ;after overflow. note prescaler is 1:8
+0029   1683           00094                         BSF STATUS,RP0  ; goto bank1
+MPASM  5.14                         TIMER.ASM   10-18-2012  10:42:11         PAGE  3
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+002A   3000           00095                         MOVLW 0x00              ;configure PORTA and PORTB as outputs
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+002B   0086           00096                         MOVWF TRISB             ;
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+002C   0085           00097                         MOVWF TRISA             ;
+                      00098                         
+002D   30A0           00099                         MOVLW 0xA0              ; Enable Global interrrupt and 
+002E   008B           00100                         MOVWF INTCON    ; timer0 interrrupt
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+002F   0801           00101                         MOVF   OPTION_REG,W
+0030   39C0           00102                         ANDLW  0xC0             ;Disable PORTB pullups and Configure timer0 clock source
+                             as internal
+0031   3802           00103                         IORLW  0x02             ;Assign prescaler to timer0 and set prescaler to 1:8
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0032   0081           00104                         MOVWF  OPTION_REG
+0033   1283           00105                         BCF STATUS,RP0          ;goto bank0
+0034   0185           00106                         CLRF PORTA
+                      00107 
+0035                  00108 RUN                                                                     
+0035   0816           00109                         MOVF CNT3,W
+                      00110                         ;MOVF UNITS,W
+0036   204B           00111                         CALL DISPLAY
+0037   0086           00112                         MOVWF PORTB
+0038   1585           00113                         BSF PORTA,3
+0039   2042           00114                         CALL ShortDelay
+003A   1185           00115                         BCF PORTA,3
+003B   0818           00116                         MOVF TENS,W
+003C   204B           00117                         CALL DISPLAY
+003D   0086           00118                         MOVWF PORTB
+003E   1505           00119                         BSF PORTA,2
+003F   2042           00120                         CALL ShortDelay
+0040   1105           00121                         BCF PORTA,2
+                      00122                                         
+0041   2835           00123                         GOTO RUN
+                      00124 
+                      00125 
+0042                  00126 ShortDelay
+                      00127                 
+0042   3002           00128                 MOVLW .2
+0043   0091           00129                 MOVWF DEL3
+0044   0080           00130                 MOVWF .0
+0045   0092           00131                 MOVWF DEL4
+0046   0B92           00132                 DECFSZ DEL4,F
+0047   2846           00133                 GOTO $-1
+0048   0B91           00134                 DECFSZ DEL3,F
+0049   2844           00135                 GOTO $-5
+004A   0008           00136                 RETURN          
+                      00137 
+                      00138         
+                      00139 
+                      00140 
+004B                  00141 DISPLAY 
+004B   0782           00142                 ADDWF PCL,F
+MPASM  5.14                         TIMER.ASM   10-18-2012  10:42:11         PAGE  4
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+004C   34C0           00143                 RETLW 0xC0
+004D   34F9           00144                 RETLW 0xF9
+004E   34A4           00145                 RETLW 0xA4
+004F   34B0           00146                 RETLW 0xB0
+0050   3499           00147                 RETLW 0x99
+0051   3492           00148                 RETLW 0x92
+0052   3482           00149                 RETLW 0x82
+0053   34F8           00150                 RETLW 0xF8
+0054   3480           00151                 RETLW 0x80
+0055   3490           00152                 RETLW 0x90
+                      00153 
+                      00154 
+                      00155                 END                     ; directive 'end of program'
+MPASM  5.14                         TIMER.ASM   10-18-2012  10:42:11         PAGE  5
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+C                                 00000000
+CNT                               00000013
+CNT1                              00000014
+CNT2                              00000015
+CNT3                              00000016
+DC                                00000001
+DEL                               0000000E
+DEL1                              0000000F
+DEL2                              00000010
+DEL3                              00000011
+DEL4                              00000012
+DISPLAY                           0000004B
+EEADR                             00000009
+EECON1                            00000088
+EECON2                            00000089
+EEDATA                            00000008
+EEIE                              00000006
+EEIF                              00000004
+F                                 00000001
+FSR                               00000004
+GIE                               00000007
+INDF                              00000000
+INTCON                            0000000B
+INTE                              00000004
+INTEDG                            00000006
+INTF                              00000001
+IRP                               00000007
+ISR1                              0000001C
+NOT_PD                            00000003
+NOT_RBPU                          00000007
+NOT_TO                            00000004
+NUM_TEMP                          00000017
+OPTION_REG                        00000081
+PCL                               00000002
+PCLATH                            0000000A
+PORTA                             00000005
+PORTB                             00000006
+PS0                               00000000
+PS1                               00000001
+PS2                               00000002
+PSA                               00000003
+RBIE                              00000003
+RBIF                              00000000
+RD                                00000000
+RP0                               00000005
+RP1                               00000006
+RUN                               00000035
+STATUS                            00000003
+ShortDelay                        00000042
+T0CS                              00000005
+T0IE                              00000005
+T0IF                              00000002
+T0SE                              00000004
+MPASM  5.14                         TIMER.ASM   10-18-2012  10:42:11         PAGE  6
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+TENS                              00000018
+TMR0                              00000001
+TRISA                             00000085
+TRISB                             00000086
+UNITS                             00000019
+W                                 00000000
+WR                                00000001
+WREN                              00000002
+WRERR                             00000003
+Z                                 00000002
+_CP_OFF                           00003FFF
+_CP_ON                            0000000F
+_HS_OSC                           00003FFE
+_LP_OSC                           00003FFC
+_PWRTE_OFF                        00003FFF
+_PWRTE_ON                         00003FF7
+_RC_OSC                           00003FFF
+_WDT_OFF                          00003FFB
+_WDT_ON                           00003FFF
+_XT_OSC                           00003FFD
+__16F84A                          00000001
+main                              00000022
+status_temp                       0000000D
+w_temp                            0000000C
+
+
+MEMORY USAGE MAP ('X' = Used,  '-' = Unused)
+
+0000 : X---XXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0040 : XXXXXXXXXXXXXXXX XXXXXX---------- ---------------- ----------------
+2000 : -------X-------- ---------------- ---------------- ----------------
+
+All other memory blocks unused.
+
+Program Memory Words Used:    83
+Program Memory Words Free:   941
+
+
+Errors   :     0
+Warnings :     3 reported,     0 suppressed
+Messages :     8 reported,     0 suppressed
+
+

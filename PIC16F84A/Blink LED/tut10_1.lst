@@ -1,0 +1,331 @@
+MPASM  5.14                       TUT10_1.ASM   10-2-2012  13:36:49         PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00001 ;Tutorial 10.1 - Nigel Goodwin 2005
+                      00002 ;7 segment LED display - count up from zero
+                      00003 
+Warning[215]: Processor superseded by command line.  Verify processor symbol.
+                      00004         LIST    p=16F628                ;tell assembler what chip we are using
+                      00005         include "P16F84.inc"            ;include the defaults for the chip
+                      00001         LIST
+                      00002 ; P16F84.INC  Standard Header File, Version 2.00    Microchip Technology, Inc.
+Message[301]: MESSAGE: (Processor-header file mismatch.  Verify selected processor.)
+                      00136         LIST
+                      00006         ERRORLEVEL      0,      -302    ;suppress bank selection messages
+2007   3D18           00007         __config 0x3D18                 ;sets the configuration settings (oscillator type etc.)
+                      00008 
+                      00009 
+                      00010 
+                      00011 
+                      00012                 cblock  0x20                    ;start of general purpose registers
+  00000020            00013                         count                   ;used in looping routines
+  00000021            00014                         count1                  ;used in delay routine
+  00000022            00015                         counta                  ;used in delay routine
+  00000023            00016                         countb                  ;used in delay routine
+  00000024            00017                         tmp1                    ;temporary storage
+  00000025            00018                         tmp2
+  00000026            00019                         p_temp                  ;save register
+  00000027            00020                         s_temp                  ;save register
+  00000028            00021                         w_temp                  ;save register
+  00000029            00022                         tens                    ;tens storage
+  0000002A            00023                         ones                    ;ones storage
+                      00024                 endc
+                      00025 
+  00000006            00026 SEG_PORT        Equ     PORTB                   ;7 segment port
+  00000086            00027 SEG_TRIS        Equ     TRISB
+                      00028 
+                      00029 
+                      00030                 org     0x0000
+0000   2???           00031                 goto    Initialise
+                      00032 
+                      00033 ;**************************************************************************     
+                      00034 ;                               Interrupt routine
+                      00035 ;**************************************************************************
+                      00036 
+                      00037 
+                      00038 
+                      00039 ;       Interrupt routine handles TMR2 which generates a 1ms tick
+                      00040 
+                      00041 ;       Interrupt vector
+                      00042 
+                      00043         ORG     0x0004
+                      00044 
+                      00045 
+0004                  00046 INT
+0004   00A8           00047                 movwf   w_temp          ; Save W register
+0005   0E03           00048                 swapf   STATUS,W        ; Swap status to be saved into W
+MPASM  5.14                       TUT10_1.ASM   10-2-2012  13:36:49         PAGE  2
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0006   00A7           00049                 movwf   s_temp          ; Save STATUS register
+0007   080A           00050                 movfw   PCLATH
+0008   00A6           00051                 movwf   p_temp          ; Save PCLATH 
+                      00052         
+Error[113]  : Symbol not previously defined (PIR1)
+Error[113]  : Symbol not previously defined (TMR2IF)
+0009   1C00           00053                 btfss   PIR1,TMR2IF     ; Flag set if TMR2 interrupt
+000A   2???           00054                 goto    INTX            ; Jump if not timed out
+                      00055 
+                      00056                 ; Timer (TMR2) timeout every 1 milli second
+                      00057         
+                      00058 
+Error[113]  : Symbol not previously defined (PIR1)
+Error[113]  : Symbol not previously defined (TMR2IF)
+000B   1000           00059                 bcf     PIR1,TMR2IF     ; Clear the calling flag
+                      00060 
+                      00061 
+000C   1F86           00062                 btfss   SEG_PORT, 7     ;check which LED was last
+000D   2???           00063                 goto    Do_tens
+000E   082A           00064                 movfw   ones
+000F   390F           00065                 andlw   0x0F            ;make sure in range of table
+0010   2???           00066                 call    LED_Table
+0011   397F           00067                 andlw   0x7F            ;set to correct LED
+0012   0086           00068                 movwf   SEG_PORT
+0013   2???           00069                 goto    INTX
+                      00070 
+0014   0829           00071 Do_tens         movfw   tens
+0015   390F           00072                 andlw   0x0F            ;make sure in range of table
+0016   2???           00073                 call    LED_Table
+0017   3880           00074                 iorlw   0x80            ;set to correct LED
+0018   0086           00075                 movwf   SEG_PORT
+                      00076 
+                      00077 
+                      00078 
+0019                  00079 INTX
+0019   0826           00080                 movfw   p_temp
+001A   008A           00081                 movwf   PCLATH          ; Restore PCLATH
+001B   0E27           00082                 swapf   s_temp,W
+001C   0083           00083                 movwf   STATUS          ; Restore STATUS register - restores bank
+001D   0EA8           00084                 swapf   w_temp,F
+001E   0E28           00085                 swapf   w_temp,W        ; Restore W register
+001F   0009           00086                 retfie
+                      00087 
+0020   0782           00088 LED_Table       ADDWF   PCL       , f
+0021   3488           00089                 RETLW   b'10001000'             ;0
+0022   34BB           00090                 RETLW   b'10111011'             ;1
+0023   34C1           00091                 RETLW   b'11000001'             ;2
+0024   3491           00092                 RETLW   b'10010001'             ;3
+0025   34B2           00093                 RETLW   b'10110010'             ;4
+0026   3494           00094                 RETLW   b'10010100'             ;5
+0027   3484           00095                 RETLW   b'10000100'             ;6
+0028   34B9           00096                 RETLW   b'10111001'             ;7
+0029   3480           00097                 RETLW   b'10000000'             ;8
+MPASM  5.14                       TUT10_1.ASM   10-2-2012  13:36:49         PAGE  3
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+002A   34B0           00098                 RETLW   b'10110000'             ;9
+002B   34FF           00099                 RETLW   b'11111111'             ;blank
+002C   34FF           00100                 RETLW   b'11111111'             ;blank
+002D   34FF           00101                 RETLW   b'11111111'             ;blank
+002E   34FF           00102                 RETLW   b'11111111'             ;blank
+002F   34FF           00103                 RETLW   b'11111111'             ;blank
+0030   34FF           00104                 RETLW   b'11111111'             ;blank
+                      00105 
+                      00106 
+0031   3007           00107 Initialise      movlw   0x07
+Error[113]  : Symbol not previously defined (CMCON)
+0032   0080           00108                 movwf   CMCON                   ;turn comparators off (make it like a 16F84)
+0033   1683           00109                 bsf     STATUS,         RP0     ;select bank 1
+0034   3000           00110                 movlw   b'00000000'             ;Set port data directions, data output
+0035   0086           00111                 movwf   SEG_TRIS
+0036   1283           00112                 bcf     STATUS,         RP0     ;select bank 0
+                      00113         
+                      00114 
+                      00115                 ;       Set up Timer 2.
+                      00116         
+                      00117                 ;movlw  b'01111110'             ; Post scale /16, pre scale /16, TMR2 ON
+                      00118                 ;uncomment previous line, and comment next line, to slow multiplexing speed
+                      00119                 ;so you can see the multiplexing happening
+0037   3016           00120                 movlw   b'00010110'             ; Post scale /4, pre scale /16, TMR2 ON
+Error[113]  : Symbol not previously defined (T2CON)
+0038   0080           00121                 movwf   T2CON
+                      00122 
+0039   1683           00123                 bsf     STATUS,         RP0     ;select bank 1
+                      00124 
+003A   30F9           00125                 movlw   .249                    ; Set up comparator
+Error[113]  : Symbol not previously defined (PR2)
+003B   0080           00126                 movwf   PR2
+                      00127 
+Error[113]  : Symbol not previously defined (PIE1)
+Error[113]  : Symbol not previously defined (TMR2IE)
+003C   1400           00128                 bsf     PIE1,TMR2IE             ; Enable TMR2 interrupt
+                      00129 
+003D   1283           00130                 bcf     STATUS,         RP0     ;select bank 0
+                      00131 
+                      00132                 ; Global interrupt enable
+                      00133 
+Error[113]  : Symbol not previously defined (PEIE)
+003E   140B           00134                 bsf     INTCON,PEIE             ; Enable all peripheral interrupts
+003F   178B           00135                 bsf     INTCON,GIE              ; Global interrupt enable
+                      00136 
+0040   1283           00137                 bcf     STATUS,         RP0     ;select bank 0
+                      00138         
+0041   01A9           00139                 clrf    tens
+0042   01AA           00140                 clrf    ones
+                      00141 
+                      00142         
+                      00143 
+0043                  00144 Main
+MPASM  5.14                       TUT10_1.ASM   10-2-2012  13:36:49         PAGE  4
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0043   2???           00145                 call    Delay255
+0044   2???           00146                 call    Delay255
+0045   2???           00147                 call    Delay255
+0046   2???           00148                 call    Delay255
+0047   0AAA           00149                 incf    ones,   f
+0048   082A           00150                 movf    ones,   w               ;test first digit
+0049   3C0A           00151                 sublw   0x0A
+004A   1D03           00152                 btfss   STATUS, Z
+004B   2???           00153                 goto    Main
+004C   01AA           00154                 clrf    ones
+004D   0AA9           00155                 incf    tens,   f
+004E   0829           00156                 movf    tens,   w               ;test second digit
+004F   3C0A           00157                 sublw   0x0A
+0050   1D03           00158                 btfss   STATUS, Z
+0051   2???           00159                 goto    Main
+0052   01A9           00160                 clrf    tens
+0053   2???           00161                 goto    Main                    ;loop for ever
+                      00162 
+                      00163 
+0054   30FF           00164 Delay255        movlw   0xff                    ;delay 255 mS
+0055   2???           00165                         goto    d0
+0056   3064           00166 Delay100        movlw   d'100'                  ;delay 100mS
+0057   2???           00167                         goto    d0
+0058   3032           00168 Delay50         movlw   d'50'                   ;delay 50mS
+0059   2???           00169                         goto    d0
+005A   3014           00170 Delay20         movlw   d'20'                   ;delay 20mS
+005B   2???           00171                         goto    d0
+005C   3005           00172 Delay5          movlw   0x05                    ;delay 5.000 ms (4 MHz clock)
+005D   00A1           00173 d0              movwf   count1
+005E   30C7           00174 d1              movlw   0xC7                    ;delay 1mS
+005F   00A2           00175                 movwf   counta
+0060   3001           00176                 movlw   0x01
+0061   00A3           00177                 movwf   countb
+0062                  00178 Delay_0
+0062   0BA2           00179                 decfsz  counta, f
+0063   2???           00180                 goto    $+2
+0064   0BA3           00181                 decfsz  countb, f
+0065   2???           00182                 goto    Delay_0
+                      00183 
+0066   0BA1           00184                 decfsz  count1  ,f
+0067   2???           00185                 goto    d1
+0068   3400           00186                 retlw   0x00
+                      00187 
+                      00188         END
+MPASM  5.14                       TUT10_1.ASM   10-2-2012  13:36:49         PAGE  5
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+C                                 00000000
+DC                                00000001
+Delay100                          00000056
+Delay20                           0000005A
+Delay255                          00000054
+Delay5                            0000005C
+Delay50                           00000058
+Delay_0                           00000062
+Do_tens                           00000014
+EEADR                             00000009
+EECON1                            00000088
+EECON2                            00000089
+EEDATA                            00000008
+EEIE                              00000006
+EEIF                              00000004
+F                                 00000001
+FSR                               00000004
+GIE                               00000007
+INDF                              00000000
+INT                               00000004
+INTCON                            0000000B
+INTE                              00000004
+INTEDG                            00000006
+INTF                              00000001
+INTX                              00000019
+IRP                               00000007
+Initialise                        00000031
+LED_Table                         00000020
+Main                              00000043
+NOT_PD                            00000003
+NOT_RBPU                          00000007
+NOT_TO                            00000004
+OPTION_REG                        00000081
+PCL                               00000002
+PCLATH                            0000000A
+PORTA                             00000005
+PORTB                             00000006
+PS0                               00000000
+PS1                               00000001
+PS2                               00000002
+PSA                               00000003
+RBIE                              00000003
+RBIF                              00000000
+RD                                00000000
+RP0                               00000005
+RP1                               00000006
+SEG_PORT                          00000006
+SEG_TRIS                          00000086
+STATUS                            00000003
+T0CS                              00000005
+T0IE                              00000005
+T0IF                              00000002
+T0SE                              00000004
+MPASM  5.14                       TUT10_1.ASM   10-2-2012  13:36:49         PAGE  6
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+TMR0                              00000001
+TRISA                             00000085
+TRISB                             00000086
+W                                 00000000
+WR                                00000001
+WREN                              00000002
+WRERR                             00000003
+Z                                 00000002
+_.org_1_0063                      00000063
+_CP_OFF                           00003FFF
+_CP_ON                            0000000F
+_HS_OSC                           00003FFE
+_LP_OSC                           00003FFC
+_PWRTE_OFF                        00003FFF
+_PWRTE_ON                         00003FF7
+_RC_OSC                           00003FFF
+_WDT_OFF                          00003FFB
+_WDT_ON                           00003FFF
+_XT_OSC                           00003FFD
+__16F84A                          00000001
+count                             00000020
+count1                            00000021
+counta                            00000022
+countb                            00000023
+d0                                0000005D
+d1                                0000005E
+ones                              0000002A
+p_temp                            00000026
+s_temp                            00000027
+tens                              00000029
+tmp1                              00000024
+tmp2                              00000025
+w_temp                            00000028
+
+Errors   :    10
+Warnings :     1 reported,     0 suppressed
+Messages :     1 reported,     1 suppressed
+
+

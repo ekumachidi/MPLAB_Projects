@@ -1,0 +1,4 @@
+Warning[203] C:\MPLAB PROJECT\PIC16F84A\BLINK LED\16F84ATEMP.ASM 91 : Found opcode in column 1. (call)
+Message[302] C:\MPLAB PROJECT\PIC16F84A\BLINK LED\16F84ATEMP.ASM 102 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[305] C:\MPLAB PROJECT\PIC16F84A\BLINK LED\16F84ATEMP.ASM 115 : Using default destination of 1 (file).
+Message[305] C:\MPLAB PROJECT\PIC16F84A\BLINK LED\16F84ATEMP.ASM 117 : Using default destination of 1 (file).

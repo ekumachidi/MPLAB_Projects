@@ -1,0 +1,367 @@
+MPASM  5.14                     BLINK LED.ASM   8-29-2012  16:27:47         PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00001 ;**********************************************************************
+                      00002 ;   This file is a basic code template for assembly code generation   *
+                      00003 ;   on the PIC16F628. This file contains the basic code               *
+                      00004 ;   building blocks to build upon.                                    *  
+                      00005 ;                                                                     *
+                      00006 ;   If interrupts are not used all code presented between the ORG     *
+                      00007 ;   0x004 directive and the label main can be removed. In addition    *
+                      00008 ;   the variable assignments for 'w_temp' and 'status_temp' can       *
+                      00009 ;   be removed.                                                       *                         
+                      00010 ;                                                                     *
+                      00011 ;   Refer to the MPASM User's Guide for additional information on     *
+                      00012 ;   features of the assembler (Document DS33014).                     *
+                      00013 ;                                                                     *
+                      00014 ;   Refer to the respective PIC data sheet for additional            *
+                      00015 ;   information on the instruction set.                               *
+                      00016 ;                                                                     *
+                      00017 ;   Template file assembled with MPLAB V4.00.00 and MPASM V2.20.12    *
+                      00018 ;                                                                     *
+                      00019 ;**********************************************************************
+                      00020 ;                                                                     *
+                      00021 ;    Filename:      Blink LED.asm                                           *
+                      00022 ;    Date:          8th August 2012                                                  *
+                      00023 ;    File Version:                                                    *
+                      00024 ;                                                                     *
+                      00025 ;    Author:        Ekuma, C.                                                  *
+                      00026 ;    Company:                                                         *
+                      00027 ;                                                                     * 
+                      00028 ;                                                                     *
+                      00029 ;**********************************************************************
+                      00030 ;                                                                     *
+                      00031 ;    Files required:                                                  *
+                      00032 ;                                                                     *
+                      00033 ;                                                                     *
+                      00034 ;                                                                     *
+                      00035 ;**********************************************************************
+                      00036 ;                                                                     *
+                      00037 ;    Notes:                                                           *
+                      00038 ;                                                                     *
+                      00039 ;                                                                     *
+                      00040 ;                                                                     *
+                      00041 ;                                                                     *
+                      00042 ;**********************************************************************
+                      00043 
+                      00044 
+                      00045         list      p=16f628            ; list directive to define processor
+                      00046         #include <p16f628.inc>        ; processor specific variable definitions
+                      00001         LIST
+                      00002 ; P16F628.INC  Standard Header File, Version 1.01    Microchip Technology, Inc.
+                      00261         LIST
+                      00047         
+2007   3F21           00048         __CONFIG _CP_OFF & _WDT_OFF & _BODEN_OFF & _PWRTE_ON & _XT_OSC & _MCLRE_ON & _LVP_OFF
+                      00049 
+                      00050 ; '__CONFIG' directive is used to embed configuration data within .asm file.
+MPASM  5.14                     BLINK LED.ASM   8-29-2012  16:27:47         PAGE  2
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00051 ; The lables following the directive are located in the respective .inc file.
+                      00052 ; See respective data sheet for additional information on configuration word.
+                      00053 
+                      00054 
+                      00055 
+                      00056 
+                      00057 
+                      00058 
+                      00059 ;***** VARIABLE DEFINITIONS
+  00000070            00060 w_temp        EQU     0x70        ; variable used for context saving 
+  00000071            00061 status_temp   EQU     0x71        ; variable used for context saving
+                      00062 
+                      00063 
+                      00064 
+                      00065 
+                      00066 
+                      00067 
+                      00068 
+                      00069 
+                      00070 ;**********************************************************************
+0000                  00071                 ORG     0x000             ; processor reset vector
+0000   280C           00072                 goto    main              ; go to beginning of program
+                      00073 
+                      00074 
+0004                  00075                 ORG     0x004             ; interrupt vector location
+0004   00F0           00076                 movwf   w_temp            ; save off current W register contents
+0005   0803           00077                 movf    STATUS,w          ; move status register into W register
+0006   00F1           00078                 movwf   status_temp       ; save off contents of STATUS register
+                      00079 
+                      00080 
+                      00081 ; isr code can go here or be located as a call subroutine elsewhere
+                      00082 
+                      00083 
+0007   0871           00084                 movf    status_temp,w     ; retrieve copy of STATUS register
+0008   0083           00085                 movwf   STATUS            ; restore pre-isr STATUS register contents
+0009   0EF0           00086                 swapf   w_temp,f
+000A   0E70           00087                 swapf   w_temp,w          ; restore pre-isr W register contents
+000B   0009           00088                 retfie                    ; return from interrupt
+                      00089 
+                      00090 
+                      00091 
+000C                  00092 main
+                      00093 
+000C   2012           00094                 call Initialize; X
+                      00095 
+000D   1406           00096 main1   BSF PORTB,0     ; bank 1
+000E   2017           00097                 call Delay
+000F   1006           00098                 BCF PORTB,0     ; bank 0        
+0010   2017           00099                 call Delay
+0011   280D           00100                 GOTO main1
+                      00101 
+0012                  00102 Initialize
+0012   1683           00103                 BSF STATUS,RP0
+MPASM  5.14                     BLINK LED.ASM   8-29-2012  16:27:47         PAGE  3
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0013   30FE           00104                 MOVLW b'11111110'
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0014   0086           00105                 MOVWF TRISB
+0015   1283           00106                 BCF STATUS,RP0
+0016   0008           00107                 RETURN
+0017                  00108 Delay
+0017   3003           00109         movlw .03
+0018   00A0           00110         movwf 20h
+                      00111 
+0019   300A           00112 mydelay1        movlw .10
+001A   00A1           00113                         movwf 21h
+001B   30FF           00114 mydelay2        movlw .255
+001C   00A2           00115                         movwf 22h
+001D   0BA2           00116 dec1    decfsz 22h,F
+001E   281D           00117                 goto dec1
+Message[305]: Using default destination of 1 (file).
+001F   0BA1           00118                 decfsz 21h
+0020   281B           00119                 goto mydelay2
+Message[305]: Using default destination of 1 (file).
+0021   0BA0           00120                 decfsz 20h
+0022   2819           00121                 goto mydelay1
+0023   0008           00122                 return
+                      00123 ; remaining code goes here
+                      00124 
+                      00125 
+                      00126 
+                      00127 
+                      00128 
+                      00129 
+                      00130 
+                      00131 
+                      00132 
+                      00133 
+                      00134                 END                       ; directive 'end of program'
+MPASM  5.14                     BLINK LED.ASM   8-29-2012  16:27:47         PAGE  4
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+ADEN                              00000003
+BRGH                              00000002
+C                                 00000000
+C1INV                             00000004
+C1OUT                             00000006
+C2INV                             00000005
+C2OUT                             00000007
+CCP1CON                           00000017
+CCP1IE                            00000002
+CCP1IF                            00000002
+CCP1M0                            00000000
+CCP1M1                            00000001
+CCP1M2                            00000002
+CCP1M3                            00000003
+CCP1X                             00000005
+CCP1Y                             00000004
+CCPR1H                            00000016
+CCPR1L                            00000015
+CIS                               00000003
+CM0                               00000000
+CM1                               00000001
+CM2                               00000002
+CMCON                             0000001F
+CMIE                              00000006
+CMIF                              00000006
+CREN                              00000004
+CSRC                              00000007
+DC                                00000001
+Delay                             00000017
+EEADR                             0000009B
+EECON1                            0000009C
+EECON2                            0000009D
+EEDATA                            0000009A
+EEIE                              00000007
+EEIF                              00000007
+F                                 00000001
+FERR                              00000002
+FSR                               00000004
+GIE                               00000007
+INDF                              00000000
+INTCON                            0000000B
+INTE                              00000004
+INTEDG                            00000006
+INTF                              00000001
+IRP                               00000007
+Initialize                        00000012
+NOT_BO                            00000000
+NOT_BOD                           00000000
+NOT_BOR                           00000000
+NOT_PD                            00000003
+NOT_POR                           00000001
+NOT_RBPU                          00000007
+NOT_T1SYNC                        00000002
+MPASM  5.14                     BLINK LED.ASM   8-29-2012  16:27:47         PAGE  5
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+NOT_TO                            00000004
+OERR                              00000001
+OPTION_REG                        00000081
+OSCF                              00000003
+PCL                               00000002
+PCLATH                            0000000A
+PCON                              0000008E
+PEIE                              00000006
+PIE1                              0000008C
+PIR1                              0000000C
+PORTA                             00000005
+PORTB                             00000006
+PR2                               00000092
+PS0                               00000000
+PS1                               00000001
+PS2                               00000002
+PSA                               00000003
+RBIE                              00000003
+RBIF                              00000000
+RCIE                              00000005
+RCIF                              00000005
+RCREG                             0000001A
+RCSTA                             00000018
+RD                                00000000
+RP0                               00000005
+RP1                               00000006
+RX9                               00000006
+RX9D                              00000000
+SPBRG                             00000099
+SPEN                              00000007
+SREN                              00000005
+STATUS                            00000003
+SYNC                              00000004
+T0CS                              00000005
+T0IE                              00000005
+T0IF                              00000002
+T0SE                              00000004
+T1CKPS0                           00000004
+T1CKPS1                           00000005
+T1CON                             00000010
+T1OSCEN                           00000003
+T2CKPS0                           00000000
+T2CKPS1                           00000001
+T2CON                             00000012
+TMR0                              00000001
+TMR1CS                            00000001
+TMR1H                             0000000F
+TMR1IE                            00000000
+TMR1IF                            00000000
+TMR1L                             0000000E
+TMR1ON                            00000000
+TMR2                              00000011
+TMR2IE                            00000001
+MPASM  5.14                     BLINK LED.ASM   8-29-2012  16:27:47         PAGE  6
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+TMR2IF                            00000001
+TMR2ON                            00000002
+TOUTPS0                           00000003
+TOUTPS1                           00000004
+TOUTPS2                           00000005
+TOUTPS3                           00000006
+TRISA                             00000085
+TRISB                             00000086
+TRMT                              00000001
+TX9                               00000006
+TX9D                              00000000
+TXEN                              00000005
+TXIE                              00000004
+TXIF                              00000004
+TXREG                             00000019
+TXSTA                             00000098
+VR0                               00000000
+VR1                               00000001
+VR2                               00000002
+VR3                               00000003
+VRCON                             0000009F
+VREN                              00000007
+VROE                              00000006
+VRR                               00000005
+W                                 00000000
+WR                                00000001
+WREN                              00000002
+WRERR                             00000003
+Z                                 00000002
+_BODEN_OFF                        00003FBF
+_BODEN_ON                         00003FFF
+_CP_50                            00002BFF
+_CP_75                            000017FF
+_CP_ALL                           000003FF
+_CP_OFF                           00003FFF
+_DATA_CP_OFF                      00003FFF
+_DATA_CP_ON                       00003EFF
+_ER_OSC_CLKOUT                    00003FFF
+_ER_OSC_NOCLKOUT                  00003FFE
+_EXTCLK_OSC                       00003FEF
+_HS_OSC                           00003FEE
+_INTRC_OSC_CLKOUT                 00003FFD
+_INTRC_OSC_NOCLKOUT               00003FFC
+_LP_OSC                           00003FEC
+_LVP_OFF                          00003F7F
+_LVP_ON                           00003FFF
+_MCLRE_OFF                        00003FDF
+_MCLRE_ON                         00003FFF
+_PWRTE_OFF                        00003FFF
+_PWRTE_ON                         00003FF7
+_WDT_OFF                          00003FFB
+_WDT_ON                           00003FFF
+_XT_OSC                           00003FED
+MPASM  5.14                     BLINK LED.ASM   8-29-2012  16:27:47         PAGE  7
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+__16F628                          00000001
+dec1                              0000001D
+main                              0000000C
+main1                             0000000D
+mydelay1                          00000019
+mydelay2                          0000001B
+status_temp                       00000071
+w_temp                            00000070
+
+
+MEMORY USAGE MAP ('X' = Used,  '-' = Unused)
+
+0000 : X---XXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXX------------ ----------------
+2000 : -------X-------- ---------------- ---------------- ----------------
+
+All other memory blocks unused.
+
+Program Memory Words Used:    33
+Program Memory Words Free:  2015
+
+
+Errors   :     0
+Warnings :     0 reported,     0 suppressed
+Messages :     3 reported,     0 suppressed
+
+

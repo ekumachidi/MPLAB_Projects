@@ -1,0 +1,378 @@
+MPASM  5.14                             7.ASM   10-4-2012  8:12:54         PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00001 ;**********************************************************************
+                      00002 ;   This file is a basic code template for assembly code generation   *
+                      00003 ;   on the PIC16F84A. This file contains the basic code               *
+                      00004 ;   building blocks to build upon.                                    *  
+                      00005 ;                                                                     *
+                      00006 ;   If interrupts are not used all code presented between the ORG     *
+                      00007 ;   0x004 directive and the label main can be removed. In addition    *
+                      00008 ;   the variable assignments for 'w_temp' and 'status_temp' can       *
+                      00009 ;   be removed.                                                       *                        
+                      00010 ;                                                                     *
+                      00011 ;   Refer to the MPASM User's Guide for additional information on     *
+                      00012 ;   features of the assembler (Document DS33014).                     *
+                      00013 ;                                                                     *
+                      00014 ;   Refer to the respective PIC data sheet for additional            *
+                      00015 ;   information on the instruction set.                               *
+                      00016 ;                                                                     *
+                      00017 ;   Template file assembled with MPLAB V4.00.00 and MPASM V2.20.12.   *
+                      00018 ;                                                                     *
+                      00019 ;**********************************************************************
+                      00020 ;                                                                     *
+                      00021 ;    Filename:      xxx.asm                                           *
+                      00022 ;    Date:                                                            *
+                      00023 ;    File Version:                                                    *
+                      00024 ;                                                                     *
+                      00025 ;    Author:                                                          *
+                      00026 ;    Company:                                                         *
+                      00027 ;                                                                     * 
+                      00028 ;                                                                     *
+                      00029 ;**********************************************************************
+                      00030 ;                                                                     *
+                      00031 ;    Files required:                                                  *
+                      00032 ;                                                                     *
+                      00033 ;                                                                     *
+                      00034 ;                                                                     *
+                      00035 ;**********************************************************************
+                      00036 ;                                                                     *
+                      00037 ;    Notes:                                                           *
+                      00038 ;                                                                     *
+                      00039 ;                                                                     *
+                      00040 ;                                                                     *
+                      00041 ;                                                                     *
+                      00042 ;**********************************************************************
+                      00043 
+                      00044 
+                      00045         list      p=16F84A            ; list directive to define processor
+                      00046         #include <p16F84A.inc>        ; processor specific variable definitions
+                      00001         LIST
+                      00002 ; P16F84A.INC  Standard Header File, Version 2.00    Microchip Technology, Inc.
+                      00134         LIST
+                      00047 
+2007   3FF1           00048         __CONFIG   _CP_OFF & _WDT_OFF & _PWRTE_ON & _XT_OSC
+                      00049 
+                      00050 ; '__CONFIG' directive is used to embed configuration data within .asm file.
+MPASM  5.14                             7.ASM   10-4-2012  8:12:54         PAGE  2
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00051 ; The lables following the directive are located in the respective .inc file.
+                      00052 ; See respective data sheet for additional information on configuration word.
+                      00053 
+                      00054 
+                      00055 
+                      00056 
+                      00057 ;***** VARIABLE DEFINITIONS
+                      00058 ;w_temp        EQU     0x0C        ; variable used for context saving 
+                      00059 ;status_temp   EQU     0x0D        ; variable used for context saving
+                      00060 
+                      00061 
+                      00062 
+Warning[205]: Found directive in column 1. (cblock)
+                      00063 cblock  0x20                    ;start of general purpose registers
+  00000020            00064                         count                   ;used in looping routines
+  00000021            00065                         count1                  ;used in delay routine
+  00000022            00066                         counta                  ;used in delay routine
+  00000023            00067                         countb                  ;used in delay routine
+  00000024            00068                         tmp1                    ;temporary storage
+  00000025            00069                         tmp2
+  00000026            00070                         p_temp                  ;save register
+  00000027            00071                         s_temp                  ;save register
+  00000028            00072                         w_temp                  ;save register
+  00000029            00073                         tens                    ;tens storage
+  0000002A            00074                         ones                    ;ones storage
+                      00075                 endc
+                      00076 
+                      00077 
+                      00078 
+                      00079 
+                      00080 ;**********************************************************************
+0000                  00081                 ORG     0x000             ; processor reset vector
+0000   2831           00082                 goto    Initialise              ; go to beginning of program
+                      00083 
+                      00084 
+0004                  00085                 ORG     0x004             ; interrupt vector location
+                      00086                 ;movwf   w_temp            ; save off current W register contents
+                      00087         ;       movf    STATUS,w          ; move status register into W register
+                      00088         ;       movwf   status_temp       ; save off contents of STATUS register
+                      00089 
+0004                  00090 INT
+0004   00A8           00091                 movwf   w_temp          ; Save W register
+0005   0E03           00092                 swapf   STATUS,W        ; Swap status to be saved into W
+0006   00A7           00093                 movwf   s_temp          ; Save STATUS register
+0007   080A           00094                 movfw   PCLATH
+0008   00A6           00095                 movwf   p_temp          ; Save PCLATH 
+                      00096         
+0009   1C8B           00097                 btfss   INTCON,INTF     ; Flag set if TMR0 interrupt
+000A   2819           00098                 goto    INTX            ; Jump if not timed out
+                      00099                 
+000B   108B           00100                 bcf     INTCON,INTF     ; Clear the calling flag
+                      00101 
+000C   1F86           00102                 btfss   PORTB, 7        ;check which LED was last
+MPASM  5.14                             7.ASM   10-4-2012  8:12:54         PAGE  3
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+000D   2814           00103                 goto    Do_tens
+000E   082A           00104                 movfw   ones
+000F   390F           00105                 andlw   0x0F            ;make sure in range of table
+0010   2020           00106                 call    LED_Table
+0011   397F           00107                 andlw   0x7F            ;set to correct LED
+0012   0086           00108                 movwf   PORTB
+0013   2819           00109                 goto    INTX
+                      00110 
+0014   0829           00111 Do_tens         movfw   tens
+0015   390F           00112                 andlw   0x0F            ;make sure in range of table
+0016   2020           00113                 call    LED_Table
+0017   3880           00114                 iorlw   0x80            ;set to correct LED
+0018   0086           00115                 movwf   PORTB
+                      00116 
+                      00117 
+                      00118 
+0019                  00119 INTX
+0019   0826           00120                 movfw   p_temp
+001A   008A           00121                 movwf   PCLATH          ; Restore PCLATH
+001B   0E27           00122                 swapf   s_temp,W
+001C   0083           00123                 movwf   STATUS          ; Restore STATUS register - restores bank
+001D   0EA8           00124                 swapf   w_temp,F
+001E   0E28           00125                 swapf   w_temp,W        ; Restore W register
+001F   0009           00126                 retfie
+                      00127 
+0020   0782           00128 LED_Table       ADDWF   PCL       , f
+0021   3488           00129                 RETLW   b'10001000'             ;0
+0022   34BB           00130                 RETLW   b'10111011'             ;1
+0023   34C1           00131                 RETLW   b'11000001'             ;2
+0024   3491           00132                 RETLW   b'10010001'             ;3
+0025   34B2           00133                 RETLW   b'10110010'             ;4
+0026   3494           00134                 RETLW   b'10010100'             ;5
+0027   3484           00135                 RETLW   b'10000100'             ;6
+0028   34B9           00136                 RETLW   b'10111001'             ;7
+0029   3480           00137                 RETLW   b'10000000'             ;8
+002A   34B0           00138                 RETLW   b'10110000'             ;9
+002B   34FF           00139                 RETLW   b'11111111'             ;blank
+002C   34FF           00140                 RETLW   b'11111111'             ;blank
+002D   34FF           00141                 RETLW   b'11111111'             ;blank
+002E   34FF           00142                 RETLW   b'11111111'             ;blank
+002F   34FF           00143                 RETLW   b'11111111'             ;blank
+0030   34FF           00144                 RETLW   b'11111111'             ;blank
+                      00145 
+                      00146 
+0031   3007           00147 Initialise      movlw   0x07                    
+0032   1683           00148                         bsf     STATUS,         RP0     ;select bank 1
+0033   3000           00149                         movlw   b'00000000'             ;Set port data directions, data output
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0034   0086           00150                         movwf   TRISB
+0035   1283           00151                         bcf     STATUS,         RP0     ;select bank 0
+                      00152 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+0036   3016           00153                 movlw   b'00010110'             ; Post scale /4, pre scale /16, TMR2 ON
+0037   008B           00154                 movwf   INTCON
+MPASM  5.14                             7.ASM   10-4-2012  8:12:54         PAGE  4
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00155 
+0038   1683           00156                 bsf     STATUS,         RP0     ;select bank 1
+                      00157 
+0039   30FF           00158                 movlw   .255                    ; Set up comparator
+003A   008B           00159                 movwf   INTCON
+                      00160 
+003B   148B           00161                 bsf     INTCON,INTF             ; Enable TMR2 interrupt
+                      00162 
+003C   1283           00163                 bcf     STATUS,         RP0     ;select bank 0
+                      00164 
+                      00165                 ; Global interrupt enable
+                      00166 
+003D   148B           00167                 bsf     INTCON,INTF             ; Enable all peripheral interrupts
+003E   178B           00168                 bsf     INTCON,GIE              ; Global interrupt enable
+                      00169 
+003F   1283           00170                 bcf     STATUS,         RP0     ;select bank 0
+                      00171         
+0040   01A9           00172                 clrf    tens
+0041   01AA           00173                 clrf    ones
+                      00174 ; isr code can go here or be located as a call subroutine elsewhere
+                      00175 
+                      00176 
+                      00177         ;       movf    status_temp,w     ; retrieve copy of STATUS register
+                      00178         ;;      movwf   STATUS            ; restore pre-isr STATUS register contents
+                      00179         ;       swapf   w_temp,f
+                      00180         ;;      swapf   w_temp,w          ; restore pre-isr W register contents
+                      00181         ;       retfie                    ; return from interrupt
+                      00182 
+                      00183 
+                      00184 
+0042                  00185 Main
+0042   2053           00186                 call    Delay255
+0043   2053           00187                 call    Delay255
+0044   2053           00188                 call    Delay255
+0045   2053           00189                 call    Delay255
+0046   0AAA           00190                 incf    ones,   f
+0047   082A           00191                 movf    ones,   w               ;test first digit
+0048   3C0A           00192                 sublw   0x0A
+0049   1D03           00193                 btfss   STATUS, Z
+004A   2842           00194                 goto    Main
+004B   01AA           00195                 clrf    ones
+004C   0AA9           00196                 incf    tens,   f
+004D   0829           00197                 movf    tens,   w               ;test second digit
+004E   3C0A           00198                 sublw   0x0A
+004F   1D03           00199                 btfss   STATUS, Z
+0050   2842           00200                 goto    Main
+0051   01A9           00201                 clrf    tens
+0052   2842           00202                 goto    Main                    ;loop for ever
+                      00203 
+                      00204 
+0053   30FF           00205 Delay255        movlw   0xff                    ;delay 255 mS
+0054   285C           00206                         goto    d0
+0055   3064           00207 Delay100        movlw   d'100'                  ;delay 100mS
+MPASM  5.14                             7.ASM   10-4-2012  8:12:54         PAGE  5
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0056   285C           00208                         goto    d0
+0057   3032           00209 Delay50         movlw   d'50'                   ;delay 50mS
+0058   285C           00210                         goto    d0
+0059   3014           00211 Delay20         movlw   d'20'                   ;delay 20mS
+005A   285C           00212                         goto    d0
+005B   3005           00213 Delay5          movlw   0x05                    ;delay 5.000 ms (4 MHz clock)
+005C   00A1           00214 d0              movwf   count1
+005D   30C7           00215 d1              movlw   0xC7                    ;delay 1mS
+005E   00A2           00216                 movwf   counta
+005F   3001           00217                 movlw   0x01
+0060   00A3           00218                 movwf   countb
+0061                  00219 Delay_0
+0061   0BA2           00220                 decfsz  counta, f
+0062   2864           00221                 goto    $+2
+0063   0BA3           00222                 decfsz  countb, f
+0064   2861           00223                 goto    Delay_0
+                      00224 
+0065   0BA1           00225                 decfsz  count1  ,f
+0066   285D           00226                 goto    d1
+0067   3400           00227                 retlw   0x00
+                      00228 
+                      00229         END
+MPASM  5.14                             7.ASM   10-4-2012  8:12:54         PAGE  6
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+C                                 00000000
+DC                                00000001
+Delay100                          00000055
+Delay20                           00000059
+Delay255                          00000053
+Delay5                            0000005B
+Delay50                           00000057
+Delay_0                           00000061
+Do_tens                           00000014
+EEADR                             00000009
+EECON1                            00000088
+EECON2                            00000089
+EEDATA                            00000008
+EEIE                              00000006
+EEIF                              00000004
+F                                 00000001
+FSR                               00000004
+GIE                               00000007
+INDF                              00000000
+INT                               00000004
+INTCON                            0000000B
+INTE                              00000004
+INTEDG                            00000006
+INTF                              00000001
+INTX                              00000019
+IRP                               00000007
+Initialise                        00000031
+LED_Table                         00000020
+Main                              00000042
+NOT_PD                            00000003
+NOT_RBPU                          00000007
+NOT_TO                            00000004
+OPTION_REG                        00000081
+PCL                               00000002
+PCLATH                            0000000A
+PORTA                             00000005
+PORTB                             00000006
+PS0                               00000000
+PS1                               00000001
+PS2                               00000002
+PSA                               00000003
+RBIE                              00000003
+RBIF                              00000000
+RD                                00000000
+RP0                               00000005
+RP1                               00000006
+STATUS                            00000003
+T0CS                              00000005
+T0IE                              00000005
+T0IF                              00000002
+T0SE                              00000004
+TMR0                              00000001
+TRISA                             00000085
+MPASM  5.14                             7.ASM   10-4-2012  8:12:54         PAGE  7
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+TRISB                             00000086
+W                                 00000000
+WR                                00000001
+WREN                              00000002
+WRERR                             00000003
+Z                                 00000002
+_CP_OFF                           00003FFF
+_CP_ON                            0000000F
+_HS_OSC                           00003FFE
+_LP_OSC                           00003FFC
+_PWRTE_OFF                        00003FFF
+_PWRTE_ON                         00003FF7
+_RC_OSC                           00003FFF
+_WDT_OFF                          00003FFB
+_WDT_ON                           00003FFF
+_XT_OSC                           00003FFD
+__16F84A                          00000001
+count                             00000020
+count1                            00000021
+counta                            00000022
+countb                            00000023
+d0                                0000005C
+d1                                0000005D
+ones                              0000002A
+p_temp                            00000026
+s_temp                            00000027
+tens                              00000029
+tmp1                              00000024
+tmp2                              00000025
+w_temp                            00000028
+
+
+MEMORY USAGE MAP ('X' = Used,  '-' = Unused)
+
+0000 : X---XXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0040 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXX-------- ----------------
+2000 : -------X-------- ---------------- ---------------- ----------------
+
+All other memory blocks unused.
+
+Program Memory Words Used:   101
+Program Memory Words Free:   923
+
+
+Errors   :     0
+Warnings :     1 reported,     0 suppressed
+Messages :     1 reported,     0 suppressed
+
+
